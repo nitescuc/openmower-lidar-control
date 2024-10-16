@@ -13,7 +13,6 @@ int lidar_pin = 4;
 #define LIDAR_STATE_INACTIVE 1
 
 bool control_lidar;
-bool is_idle = true;
 bool lidar_enabled = false;
 
 bool setLidarEnabled(std_srvs::SetBoolRequest &req, std_srvs::SetBoolResponse &res) {
@@ -25,17 +24,16 @@ bool setLidarEnabled(std_srvs::SetBoolRequest &req, std_srvs::SetBoolResponse &r
 
 void robot_state_cb(const xbot_msgs::RobotState::ConstPtr &state)
 {
+    auto current_lidar_state = gpio_read(pi, lidar_pin);
     // set lidar active when robot is not in idle state
-    if ((state->current_state == "IDLE") || (state->current_state == "UNDOCKING")) {
-        if (control_lidar && gpio_read(pi, lidar_pin) == LIDAR_STATE_ACTIVE) {
+    if ((state->current_state == "IDLE") || !lidar_enabled) {
+        if (control_lidar && current_lidar_state == LIDAR_STATE_ACTIVE) {
             gpio_write(pi, lidar_pin, LIDAR_STATE_INACTIVE);
         }
-        is_idle = true;
     } else {
-        if (control_lidar && lidar_enabled && gpio_read(pi, lidar_pin) == LIDAR_STATE_INACTIVE) {
+        if (control_lidar && lidar_enabled && current_lidar_state == LIDAR_STATE_INACTIVE) {
             gpio_write(pi, lidar_pin, LIDAR_STATE_ACTIVE);
         }
-        is_idle = false;
     }
 }
 
